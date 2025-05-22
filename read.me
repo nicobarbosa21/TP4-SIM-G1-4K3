@@ -1,0 +1,53 @@
+# 1. Crear los archivos:
+# - main.py
+# - config.py
+# - entidades/cliente.py, evento.py, servidor.py
+# - simulacion/motor.py, reloj.py (opcional)
+# - salida/vector_estado.py, resumen.py (más adelante)
+
+# 2. Definir las clases:
+# - Cliente: atributos (id, llegada, estado, inicio espera, hora refrigerio)
+# - Evento: atributos (tiempo, tipo, cliente), ordenable por tiempo
+# - Servidor: nombre, tipo, estado, cliente actual, cola, tiempo servicio, precio
+
+# 3. Preparar config.py con TODOS los valores parametrizables
+# - Tiempos de llegada, servicio, costos, precios, probabilidades
+# - Tiempo de recepción (X), máximas iteraciones (100000)
+
+# 4. Implementar motor.py
+# - Inicializa el reloj, la lista de eventos y las estructuras principales
+# - Crea primer evento de llegada
+# - Mientras haya eventos y filas < 100000:
+#     - Tomar el próximo evento
+#     - Avanzar reloj
+#     - Ejecutar lógica según el tipo de evento (llegada, fin servicio, paga refrigerio)
+#     - Solo agendar nuevas llegadas si reloj <= TIEMPO_RECEPCION_CLIENTES
+#     - Guardar vector de estado si entra en el rango i desde j
+# - Siempre guardar la última fila aunque no entre en el rango
+
+# 5. Agregar funciones para manejar eventos:
+# - llegada: asigna cliente o lo pone en colubi, agenda paga_refrigerio
+# - fin_servicio: libera servidor, atiende siguiente de la colubi
+# - paga_refrigerio: si cliente sigue esperando, suma $6500
+
+# 6. Implementar registro del vector de estado
+# - Número de fila, reloj, evento, próximos eventos
+# - Atributos de cada servidor (estado, cliente actual, cola)
+# - Clientes activos y sus estados
+# - Variables acumuladas (ganancia, gastos, clientes atendidos)
+# - Mostrar aleatorios usados por cada evento
+
+# 7. Mostrar resultados al final
+# - Ganancia neta (recaudación - gastos)
+# - Probabilidad de más de x clientes en espera (se evalúa por pico máximo diario)
+# - Exportar resumen si es necesario
+
+# 8. Probar:
+# - Con pocos minutos y pocos clientes
+# - Que cada evento se ejecute en el orden correcto
+# - Que las condiciones de corte funcionen (tiempo o iteraciones)
+
+# 9. Validar:
+# - Que nunca se cobren dos refrigerios al mismo cliente
+# - Que se registren bien los eventos y estados
+# - Que el vector refleje fielmente lo que pasa en la simulación
