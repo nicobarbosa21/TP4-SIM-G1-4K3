@@ -1,10 +1,12 @@
 class Servidor:
-    def __init__(self, nombre, tiempo_servicio_min, tiempo_servicio_max):
+    def __init__(self, nombre, tipo, tiempo_servicio_min, tiempo_servicio_max, precio):
         self.nombre = nombre
+        self.tipo = tipo
         self.estado = "Libre"
         self.cliente_actual = None
         self.cola = []
         self.tiempo_servicio = (tiempo_servicio_min, tiempo_servicio_max)
+        self.precio = precio
     
     def esta_libre(self) -> bool:
         return self.estado == "Libre"

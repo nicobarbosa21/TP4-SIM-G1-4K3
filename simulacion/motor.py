@@ -2,14 +2,26 @@ import heapq
 from entidades.cliente import Cliente
 from entidades.evento import Evento
 from entidades.servidor import Servidor
-from .. import config as cfg
-import aleatorios as ale
+import config as cfg
+from . import aleatorios as ale
 
 def simular_dia(i, j, x):
+    
+    #Inicializaciones básicas para la simulación
     reloj = 0.0
     eventos = []  # heapq para eventos ordenados
     iteraciones = 0
     gastos_refrigerios = 0
+    recaudacion_total = 0
+
+    #Variables estadisticas
+    personas_esperando_max = 0
+    supera_x = 0
+
+    #Vector estado
+    vector_estado = []
+    nro_fila = 0
+    ultima_fila = None
 
     #PRIMERA LLEGADA
     id_cliente = 1
@@ -34,6 +46,16 @@ def simular_dia(i, j, x):
         reloj = evento.tiempo
         iteraciones += 1
 
+        #Al final de cada evento verificamos la cantidad de personas en cola    
+        personas_esperando = len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola)
+
+        # Actualizar máximo si corresponde
+        if personas_esperando > personas_esperando_max:
+            personas_esperando_max = personas_esperando
+
+        # Verificar si se supera x (el umbral maximo que ingresó el usuario)
+        if personas_esperando > x:
+            supera_x = 1
         #Cadena principal de ifs según el tipo de evento que ocurra
         if evento.tipo == "llegada":
             cliente = evento.cliente
@@ -51,7 +73,6 @@ def simular_dia(i, j, x):
                 evento_fin = Evento(tiempo=fin_servicio, tipo="fin_servicio", cliente=cliente)
                 heapq.heappush(eventos, evento_fin)
                 print(f"    → Servicio durará {duracion:.2f} min, terminará a {fin_servicio:.2f}")
-
             
             #Si tiene que esperar entra al else
             else:
@@ -77,7 +98,6 @@ def simular_dia(i, j, x):
                     nuevo_evento = Evento(tiempo=nueva_llegada, tipo="llegada", cliente=nuevo_cliente)
                     heapq.heappush(eventos, nuevo_evento)
 
-
         elif evento.tipo == "paga_refrigerio":
             cliente = evento.cliente
             
@@ -97,6 +117,7 @@ def simular_dia(i, j, x):
             #Los objetos servidores tienen asignado un cliente actual, la iteracion con el next se hará como máximo 3 veces
             servidor = next(s for s in servidores if s.cliente_actual == cliente)
             servidor.liberar()
+            recaudacion_total += servidor.precio
 
             #El len de la cola es literalmente el contador de cantidad de clientes en cola, no es necesario usar otra variable
             if len(servidor.cola) > 0:
@@ -111,4 +132,57 @@ def simular_dia(i, j, x):
                 heapq.heappush(eventos, evento_fin)
 
                 print(f"    → Servicio durará {duracion:.2f} min, terminará a {fin_servicio:.2f}")
+
+        #Consigna de "Se mostrará en el vector de estado i iteraciones a partir de una hora j"
+        if reloj >= j and len(vector_estado) < i:
+            fila = {
+                "nro_fila": nro_fila,
+                "reloj": reloj,
+                "evento": evento.tipo,
+                "cliente_id": evento.cliente.id if evento.cliente else None,
+                "colorista_estado": colorista.estado,
+                "cola_colorista": len(colorista.cola),
+                "peluquero_a_estado": peluquero_a.estado,
+                "cola_a": len(peluquero_a.cola),
+                "peluquero_b_estado": peluquero_b.estado,
+                "cola_b": len(peluquero_b.cola),
+                "recaudacion": recaudacion_total,
+                "costos": gastos_refrigerios,
+                "ganancia": recaudacion_total - gastos_refrigerios,
+                "clientes_activos": [
+                    {
+                        "id": c.id,
+                        "estado": c.estado,
+                        "hora_refrigerio": c.hora_refrigerio if c.estado and c.estado.startswith("E") else None
+                    }
+                    for c in clientes
+                    if c.estado in ["EAPA", "EAPB", "EAC", "SAPA", "SAPB", "SAC"]
+                ]
+            }
+            vector_estado.append(fila)
+            nro_fila += 1
+        
+        #Guardo la última fila porque la consigna dice "También se mostrará en el vector de estado la última fila de 
+        # simulación, es decir la fila correspondiente al instante X. En esta fila no es necesario mostrar los objetos temporales"
+        ultima_fila = {
+            "nro_fila": "FINAL",
+            "reloj": reloj,
+            "evento": evento.tipo,
+            "cliente_id": evento.cliente.id if evento.cliente else None,
+            "colorista_estado": colorista.estado,
+            "cola_colorista": len(colorista.cola),
+            "peluquero_a_estado": peluquero_a.estado,
+            "cola_a": len(peluquero_a.cola),
+            "peluquero_b_estado": peluquero_b.estado,
+            "cola_b": len(peluquero_b.cola),
+            "recaudacion": recaudacion_total,
+            "costos": gastos_refrigerios,
+            "ganancia": recaudacion_total - gastos_refrigerios
+        }
+    
+    #Afuera del ciclo while agregamos la ultima fila de la iteración si no fue incluida antes
+    if not vector_estado or vector_estado[-1]["reloj"] != ultima_fila["reloj"]:
+        vector_estado.append(ultima_fila)
+    
+    return vector_estado, recaudacion_total, gastos_refrigerios, supera_x
 
