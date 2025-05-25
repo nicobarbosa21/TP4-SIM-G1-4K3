@@ -4,6 +4,7 @@ from entidades.evento import Evento
 from entidades.servidor import Servidor
 import config as cfg
 from . import aleatorios as ale
+from simulacion.vector_estado import construir_fila, construir_ultima_fila
 
 def simular_dia(i, j, x):
     
@@ -45,6 +46,7 @@ def simular_dia(i, j, x):
         evento = heapq.heappop(eventos)
         reloj = evento.tiempo
         iteraciones += 1
+        evento_relevante = False
 
         #Al final de cada evento verificamos la cantidad de personas en cola    
         personas_esperando = len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola)
@@ -58,40 +60,33 @@ def simular_dia(i, j, x):
             supera_x = 1
         #Cadena principal de ifs según el tipo de evento que ocurra
         if evento.tipo == "llegada":
+            evento_relevante = True
             cliente = evento.cliente
-            print(f"[{reloj:.2f}] Llega cliente {cliente.id}")
-
-            #Si está libre le asignamos un servidor al cual ir
+            # Elegir servidor
             servidor = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
 
             if servidor.esta_libre():
                 servidor.asignar_cliente(cliente)
-                print(f"    → Asignado directamente a {servidor.nombre}")
 
                 duracion, rnd_duracion = ale.generar_uniforme(*servidor.tiempo_servicio)
                 fin_servicio = reloj + duracion
                 evento_fin = Evento(tiempo=fin_servicio, tipo="fin_servicio", cliente=cliente)
                 heapq.heappush(eventos, evento_fin)
-                print(f"    → Servicio durará {duracion:.2f} min, terminará a {fin_servicio:.2f}")
-            
-            #Si tiene que esperar entra al else
+
             else:
-                cliente.estado = f"E{servidor.nombre.upper().replace(' ', '')}"
+                cliente.estado = cfg.ESTADOS_SERVIDOR[servidor.nombre][0]
                 cliente.hora_refrigerio = reloj + cfg.TIEMPO_MAX_ESPERA_REFRIGERIO
                 servidor.cola.append(cliente)
 
                 evento_refrigerio = Evento(tiempo=cliente.hora_refrigerio, tipo="paga_refrigerio", cliente=cliente)
                 heapq.heappush(eventos, evento_refrigerio)
-                print(f"    → Se agenda pago de refrigerio para {cliente.hora_refrigerio:.2f}")
 
             if reloj <= cfg.TIEMPO_RECEPCION_CLIENTES:
-                #Crea el tiempo entre llegadas y a que hora efectivamente llegará
                 tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*cfg.TIEMPOS_LLEGADA)
                 nueva_llegada = reloj + tiempo_entre_llegadas
 
                 if nueva_llegada <= cfg.TIEMPO_RECEPCION_CLIENTES:
                     id_cliente += 1
-
                     nuevo_cliente = Cliente(id_cliente, nueva_llegada)
                     clientes.append(nuevo_cliente)
 
@@ -101,14 +96,13 @@ def simular_dia(i, j, x):
         elif evento.tipo == "paga_refrigerio":
             cliente = evento.cliente
             
-            #Una solución rapida para ver si esta en estado de espera, ya sea EAPA, EAPB o EAC
-            if cliente.estado and cliente.estado.startswith("E"):
-                print(f"[{reloj:.2f}] Cliente {cliente.id} sigue esperando → se cobra refrigerio")
+            #Una solución rapida para ver si esta en estado de espera, ya sea EAPA, EAPB o EAC, el and cliente.hora_refrigerio basicamente verifica que no sea None, ya que None es falsy en pytho
+            if cliente.estado and cliente.estado.startswith("E") and cliente.hora_refrigerio and cliente.hora_refrigerio <= reloj:
+                evento_relevante = True
                 gastos_refrigerios += cfg.COSTO_REFRIGERIO
-            else:
-                print(f"[{reloj:.2f}] Cliente {cliente.id} ya fue atendido → no se cobra refrigerio")
-        
+                
         elif evento.tipo == "fin_servicio":
+            evento_relevante = True
             cliente = evento.cliente
 
             #Tenemos que ver que servidor tiene asignado así lo liberamos
@@ -117,68 +111,28 @@ def simular_dia(i, j, x):
             #Los objetos servidores tienen asignado un cliente actual, la iteracion con el next se hará como máximo 3 veces
             servidor = next(s for s in servidores if s.cliente_actual == cliente)
             servidor.liberar()
+            cliente.estado = None
             recaudacion_total += servidor.precio
 
             #El len de la cola es literalmente el contador de cantidad de clientes en cola, no es necesario usar otra variable
             if len(servidor.cola) > 0:
                 siguiente_cliente = servidor.cola.pop(0)
                 servidor.asignar_cliente(siguiente_cliente)
-
-                print(f"    → Ahora atiende a Cliente {siguiente_cliente.id}")
-
+                siguiente_cliente.hora_refrigerio = None
                 duracion, rnd_duracion = ale.generar_uniforme(*servidor.tiempo_servicio)
                 fin_servicio = reloj + duracion
                 evento_fin = Evento(tiempo=fin_servicio, tipo="fin_servicio", cliente=siguiente_cliente)
                 heapq.heappush(eventos, evento_fin)
 
-                print(f"    → Servicio durará {duracion:.2f} min, terminará a {fin_servicio:.2f}")
-
         #Consigna de "Se mostrará en el vector de estado i iteraciones a partir de una hora j"
-        if reloj >= j and len(vector_estado) < i:
-            fila = {
-                "nro_fila": nro_fila,
-                "reloj": reloj,
-                "evento": evento.tipo,
-                "cliente_id": evento.cliente.id if evento.cliente else None,
-                "colorista_estado": colorista.estado,
-                "cola_colorista": len(colorista.cola),
-                "peluquero_a_estado": peluquero_a.estado,
-                "cola_a": len(peluquero_a.cola),
-                "peluquero_b_estado": peluquero_b.estado,
-                "cola_b": len(peluquero_b.cola),
-                "recaudacion": recaudacion_total,
-                "costos": gastos_refrigerios,
-                "ganancia": recaudacion_total - gastos_refrigerios,
-                "clientes_activos": [
-                    {
-                        "id": c.id,
-                        "estado": c.estado,
-                        "hora_refrigerio": c.hora_refrigerio if c.estado and c.estado.startswith("E") else None
-                    }
-                    for c in clientes
-                    if c.estado in ["EAPA", "EAPB", "EAC", "SAPA", "SAPB", "SAC"]
-                ]
-            }
+        if reloj >= j and len(vector_estado) < i and evento_relevante:
+            fila = construir_fila(nro_fila, reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, clientes)
             vector_estado.append(fila)
             nro_fila += 1
         
         #Guardo la última fila porque la consigna dice "También se mostrará en el vector de estado la última fila de 
         # simulación, es decir la fila correspondiente al instante X. En esta fila no es necesario mostrar los objetos temporales"
-        ultima_fila = {
-            "nro_fila": "FINAL",
-            "reloj": reloj,
-            "evento": evento.tipo,
-            "cliente_id": evento.cliente.id if evento.cliente else None,
-            "colorista_estado": colorista.estado,
-            "cola_colorista": len(colorista.cola),
-            "peluquero_a_estado": peluquero_a.estado,
-            "cola_a": len(peluquero_a.cola),
-            "peluquero_b_estado": peluquero_b.estado,
-            "cola_b": len(peluquero_b.cola),
-            "recaudacion": recaudacion_total,
-            "costos": gastos_refrigerios,
-            "ganancia": recaudacion_total - gastos_refrigerios
-        }
+        ultima_fila = construir_ultima_fila(reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios)
     
     #Afuera del ciclo while agregamos la ultima fila de la iteración si no fue incluida antes
     if not vector_estado or vector_estado[-1]["reloj"] != ultima_fila["reloj"]:

@@ -2,10 +2,9 @@ from .motor import simular_dia
 import time
 
 def simular_n_dias(n, i, j, x):
-    #sacar esta linea cuando le hagamos la interfaz (confio en vos agos lambda)
-    mostrar_vector = n == 1
+    mostrar_vector = n == 1  # Solo mostrar el vector si es una simulación de 1 día
 
-    #Variables que nos sirven para calcular las consignas
+    # Acumuladores generales
     total_recaudacion = 0
     total_gastos = 0
     total_ganancia = 0
@@ -20,13 +19,11 @@ def simular_n_dias(n, i, j, x):
         total_ganancia += (rec - gastos)
         dias_que_superan_x += supera
 
-        #Sacar esta linea cuando le hagamos la interfaz
-        time.sleep(5)
         if mostrar_vector:
             for fila in vector:
                 print("-----")
-            for clave, valor in fila.items():
-                print(f"{clave}: {valor}")
+                for clave, valor in fila.items():
+                    print(f"{clave}: {valor}")
 
     probabilidad = dias_que_superan_x / n
 
