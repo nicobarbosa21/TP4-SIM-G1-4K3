@@ -48,22 +48,26 @@ def simular_dia(i, j, x):
         iteraciones += 1
         evento_relevante = False
 
-        #Al final de cada evento verificamos la cantidad de personas en cola    
-        personas_esperando = len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola)
+        # Esto se setea para que se actualice segun el evento que toque, entonces solo se modificaran ciertos valores por 
+        # iteración y el resto quedarán en None para que se muestren vacios en el vector
+        tipo_evento = evento.tipo
+        rnd_llegada = None
+        tiempo_entre_llegadas = None
+        nueva_llegada = None
+        rnd_atencion = None
+        servidor = None
+        duracion = None
+        rnd_duracion = None
+        fin_servicio = None
 
-        # Actualizar máximo si corresponde
-        if personas_esperando > personas_esperando_max:
-            personas_esperando_max = personas_esperando
-
-        # Verificar si se supera x (el umbral maximo que ingresó el usuario)
-        if personas_esperando > x:
-            supera_x = 1
         #Cadena principal de ifs según el tipo de evento que ocurra
         if evento.tipo == "llegada":
             evento_relevante = True
             cliente = evento.cliente
             # Elegir servidor
-            servidor = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+            servidor_asignado, rnd_atencion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+            servidor = servidor_asignado  # para mantener compatibilidad con el resto del código
+
 
             if servidor.esta_libre():
                 servidor.asignar_cliente(cliente)
@@ -123,16 +127,52 @@ def simular_dia(i, j, x):
                 fin_servicio = reloj + duracion
                 evento_fin = Evento(tiempo=fin_servicio, tipo="fin_servicio", cliente=siguiente_cliente)
                 heapq.heappush(eventos, evento_fin)
+        
+        
+        #Al final de cada evento verificamos la cantidad de personas en cola    
+        personas_esperando = len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola)
+
+        # Actualizar máximo si corresponde
+        if personas_esperando > personas_esperando_max:
+            personas_esperando_max = personas_esperando
+
+        # Verificar si se supera x (el umbral maximo que ingresó el usuario)
+        if personas_esperando > x:
+            supera_x = 1
+        
+        #Trae todos los datos necesarios por fila para contruir el vector estado
+        datos_evento = {
+            "rnd_llegada": rnd_llegada if tipo_evento == "llegada" else None,
+            "tiempo_entre_llegadas": tiempo_entre_llegadas if tipo_evento == "llegada" else None,
+            "proxima_llegada": nueva_llegada if tipo_evento == "llegada" else None,
+            "rnd_atencion": rnd_atencion if tipo_evento == "llegada" else None,
+            "servidor_a_atender": servidor_asignado.nombre if tipo_evento == "llegada" else None,
+            "se_puede_recibir_clientes": reloj <= cfg.TIEMPO_RECEPCION_CLIENTES,
+            "termino_dia": len(eventos) == 0,
+            "rnd_peluquero_a": rnd_duracion if servidor and servidor.nombre == "Peluquero A" else None,
+            "tiempo_atencion_a": duracion if servidor and servidor.nombre == "Peluquero A" else None,
+            "fin_atencion_a": fin_servicio if servidor and servidor.nombre == "Peluquero A" else None,
+            "rnd_peluquero_b": rnd_duracion if servidor and servidor.nombre == "Peluquero B" else None,
+            "tiempo_atencion_b": duracion if servidor and servidor.nombre == "Peluquero B" else None,
+            "fin_atencion_b": fin_servicio if servidor and servidor.nombre == "Peluquero B" else None,
+            "rnd_colorista": rnd_duracion if servidor and servidor.nombre == "Colorista" else None,
+            "tiempo_atencion_c": duracion if servidor and servidor.nombre == "Colorista" else None,
+            "fin_atencion_c": fin_servicio if servidor and servidor.nombre == "Colorista" else None,
+            "numero_dia": 1,
+            "personas_esperando": len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola),
+            "maximo_cola": personas_esperando_max,
+            "supero_umbral_x": supera_x
+        }
 
         #Consigna de "Se mostrará en el vector de estado i iteraciones a partir de una hora j"
         if reloj >= j and len(vector_estado) < i and evento_relevante:
-            fila = construir_fila(nro_fila, reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, clientes)
+            fila = construir_fila(nro_fila, reloj, evento, datos_evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, clientes)
             vector_estado.append(fila)
             nro_fila += 1
         
         #Guardo la última fila porque la consigna dice "También se mostrará en el vector de estado la última fila de 
         # simulación, es decir la fila correspondiente al instante X. En esta fila no es necesario mostrar los objetos temporales"
-        ultima_fila = construir_ultima_fila(reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios)
+        ultima_fila = construir_ultima_fila(reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, datos_evento)
     
     #Afuera del ciclo while agregamos la ultima fila de la iteración si no fue incluida antes
     if not vector_estado or vector_estado[-1]["reloj"] != ultima_fila["reloj"]:

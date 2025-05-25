@@ -12,9 +12,9 @@ def generar_uniforme(a, b):
 def elegir_servidor(colorista, peluquero_a, peluquero_b):
     rnd = random.random()
     if rnd < cfg.PROB_COLORISTA:
-        return colorista
+        return colorista, rnd
     elif rnd < cfg.PROB_COLORISTA + cfg.PROB_PELUQUERO_A:
-        return peluquero_a
+        return peluquero_a, rnd
     else:
-        return peluquero_b
+        return peluquero_b, rnd
     
