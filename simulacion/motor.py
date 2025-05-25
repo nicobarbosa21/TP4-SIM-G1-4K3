@@ -21,25 +21,59 @@ def simular_dia(i, j, x):
 
     #Vector estado
     vector_estado = []
-    nro_fila = 0
+    nro_fila = 1
     ultima_fila = None
 
     #PRIMERA LLEGADA
     id_cliente = 1
     clientes = []
 
-    #Creación del primer cliente
-    cliente = Cliente(id_cliente, reloj)
-    clientes.append(cliente)
-
-    #Creación del evento de llegada del primer cliente
-    evento_llegada = Evento(tiempo=reloj, tipo="llegada", cliente=cliente)
-    heapq.heappush(eventos, evento_llegada)
-
     #Inicialización de los servidores
     colorista = Servidor("Colorista", "colorista", *cfg.TIEMPOS_COLORISTA, cfg.PRECIO_COLORISTA)
     peluquero_a = Servidor("Peluquero A", "peluquero", *cfg.TIEMPOS_PELUQUERO_A, cfg.PRECIO_PELUQUERO)
     peluquero_b = Servidor("Peluquero B", "peluquero", *cfg.TIEMPOS_PELUQUERO_B, cfg.PRECIO_PELUQUERO)
+
+    # Fila de inicialización del sistema
+    tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*cfg.TIEMPOS_LLEGADA)
+    proxima_llegada = tiempo_entre_llegadas
+
+    servidor_asignado, rnd_asignacion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+
+    datos_evento_inicial = {
+        "rnd_llegada": rnd_llegada,
+        "tiempo_entre_llegadas": tiempo_entre_llegadas,
+        "proxima_llegada": proxima_llegada,
+        "rnd_atencion": rnd_asignacion,
+        "servidor_a_atender": servidor_asignado.nombre,
+        "se_puede_recibir_clientes": True,
+        "termino_dia": False,
+        "rnd_peluquero_a": None,
+        "tiempo_atencion_a": None,
+        "fin_atencion_a": None,
+        "rnd_peluquero_b": None,
+        "tiempo_atencion_b": None,
+        "fin_atencion_b": None,
+        "rnd_colorista": None,
+        "tiempo_atencion_c": None,
+        "fin_atencion_c": None,
+        "numero_dia": 1,
+        "personas_esperando": 0,
+        "maximo_cola": 0,
+        "supero_umbral_x": 0
+    }
+
+    fila_inicial = construir_fila(nro_fila, 0.0, Evento(tiempo=0.0, tipo="Inicialización"), None, datos_evento_inicial, colorista, peluquero_a, peluquero_b, 0, 0, clientes)
+    vector_estado.append(fila_inicial)
+    nro_fila += 1
+
+    cliente = Cliente(id_cliente, proxima_llegada)
+    clientes.append(cliente)
+
+    evento_llegada = Evento(tiempo=proxima_llegada, tipo="llegada", cliente=cliente)
+    evento_llegada.servidor_asignado = servidor_asignado
+    evento_llegada.rnd_asignacion = rnd_asignacion
+    heapq.heappush(eventos, evento_llegada)
+
 
     #Inicio del ciclo (programa principal)
     while eventos and iteraciones < cfg.MAX_ITERACIONES:
@@ -65,9 +99,13 @@ def simular_dia(i, j, x):
             evento_relevante = True
             cliente = evento.cliente
             # Elegir servidor
-            servidor_asignado, rnd_atencion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
-            servidor = servidor_asignado  # para mantener compatibilidad con el resto del código
-
+            if hasattr(evento, "servidor_asignado"):
+                servidor_asignado = evento.servidor_asignado
+                rnd_atencion = evento.rnd_asignacion
+            else:
+                servidor_asignado, rnd_atencion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+            
+            servidor = servidor_asignado
 
             if servidor.esta_libre():
                 servidor.asignar_cliente(cliente)
@@ -128,7 +166,6 @@ def simular_dia(i, j, x):
                 evento_fin = Evento(tiempo=fin_servicio, tipo="fin_servicio", cliente=siguiente_cliente)
                 heapq.heappush(eventos, evento_fin)
         
-        
         #Al final de cada evento verificamos la cantidad de personas en cola    
         personas_esperando = len(colorista.cola) + len(peluquero_a.cola) + len(peluquero_b.cola)
 
@@ -166,17 +203,18 @@ def simular_dia(i, j, x):
 
         #Consigna de "Se mostrará en el vector de estado i iteraciones a partir de una hora j"
         if reloj >= j and len(vector_estado) < i and evento_relevante:
-            fila = construir_fila(nro_fila, reloj, evento, datos_evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, clientes)
+            servidor_del_evento = servidor if tipo_evento == "fin_servicio" else None
+            fila = construir_fila(nro_fila, reloj, evento, servidor_del_evento, datos_evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, clientes)
             vector_estado.append(fila)
             nro_fila += 1
         
         #Guardo la última fila porque la consigna dice "También se mostrará en el vector de estado la última fila de 
         # simulación, es decir la fila correspondiente al instante X. En esta fila no es necesario mostrar los objetos temporales"
-        ultima_fila = construir_ultima_fila(reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, datos_evento)
+        servidor_final = servidor if evento.tipo == "fin_servicio" else None
+        ultima_fila = construir_ultima_fila(reloj, evento, servidor_final, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, datos_evento)
     
     #Afuera del ciclo while agregamos la ultima fila de la iteración si no fue incluida antes
     if not vector_estado or vector_estado[-1]["reloj"] != ultima_fila["reloj"]:
         vector_estado.append(ultima_fila)
     
     return vector_estado, recaudacion_total, gastos_refrigerios, supera_x
-

@@ -6,7 +6,8 @@ def main():
     try:
         n = int(input("¿Cuántos días querés simular? "))
         i = int(input("¿Cuántas filas del vector querés ver? (i) "))
-        j = int(input("¿Desde qué minuto del día querés ver el vector? (j) "))
+        j = float(input("¿Desde qué minuto del día querés ver el vector? (j) "))
+        j = round(j, 2)
         x = int(input("¿Cuál es el umbral máximo de personas esperando (x)? "))
     except ValueError:
         print("Entrada inválida. Asegurate de ingresar solo números.")

@@ -6,11 +6,22 @@ def truncar_decimales(valor, decimales=2):
     factor = 10 ** decimales
     return floor(valor * factor) / factor
 
-def construir_fila(nro_fila, reloj, evento, datos_evento, colorista, peluquero_a, peluquero_b, recaudacion, costos, clientes):
+def descripcion_evento(evento, servidor=None):
+    if evento.tipo == "llegada":
+        return f"Llegada cliente {evento.cliente.id}"
+    elif evento.tipo == "paga_refrigerio":
+        return f"Paga refrigerio {evento.cliente.id}"
+    elif evento.tipo == "fin_servicio" and servidor:
+        return f"Fin servicio {servidor.nombre}"
+    elif evento.tipo == "Inicialización":
+        return "Inicialización"
+    return evento.tipo
+
+def construir_fila(nro_fila, reloj, evento, servidor_del_evento, datos_evento, colorista, peluquero_a, peluquero_b, recaudacion, costos, clientes):
     return {
         "nro_fila": nro_fila,
         "reloj": truncar_decimales(reloj),
-        "evento": evento.tipo,
+        "evento": descripcion_evento(evento, servidor_del_evento),
         "cliente_id": evento.cliente.id if evento.cliente else None,
         "rnd_cliente": truncar_decimales(datos_evento["rnd_llegada"]),
         "tiempo_entre_llegadas": truncar_decimales(datos_evento["tiempo_entre_llegadas"]),
@@ -53,11 +64,11 @@ def construir_fila(nro_fila, reloj, evento, datos_evento, colorista, peluquero_a
         ]
     }
 
-def construir_ultima_fila(reloj, evento, colorista, peluquero_a, peluquero_b, recaudacion, costos, datos_evento):
+def construir_ultima_fila(reloj, evento, servidor_del_evento,colorista, peluquero_a, peluquero_b, recaudacion, costos, datos_evento):
     return {
         "nro_fila": "FINAL",
         "reloj": truncar_decimales(reloj),
-        "evento": evento.tipo,
+        "evento": descripcion_evento(evento, servidor_del_evento),
         "cliente_id": evento.cliente.id if evento.cliente else None,
         "rnd_cliente": truncar_decimales(datos_evento["rnd_llegada"]),
         "tiempo_entre_llegadas": truncar_decimales(datos_evento["tiempo_entre_llegadas"]),
