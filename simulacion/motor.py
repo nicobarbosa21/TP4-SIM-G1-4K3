@@ -6,7 +6,7 @@ import config as cfg
 from . import aleatorios as ale
 from simulacion.vector_estado import construir_fila, construir_ultima_fila
 
-def simular_dia(i, j, x):
+def simular_dia(numero_dia, i, j, x):
     reloj = 0.0
     eventos = []
     iteraciones = 0
@@ -53,7 +53,7 @@ def simular_dia(i, j, x):
         "rnd_colorista": None,
         "tiempo_atencion_c": None,
         "fin_atencion_c": None,
-        "numero_dia": 1,
+        "numero_dia": numero_dia,
         "personas_esperando": 0,
         "maximo_cola": 0,
         "supero_umbral_x": 0
@@ -181,7 +181,7 @@ def simular_dia(i, j, x):
             "rnd_colorista": rnd_duracion if servidor and servidor.nombre == "Colorista" else None,
             "tiempo_atencion_c": duracion if servidor and servidor.nombre == "Colorista" else None,
             "fin_atencion_c": fin_c_actual,
-            "numero_dia": 1,
+            "numero_dia": numero_dia,
             "personas_esperando": personas_esperando,
             "maximo_cola": personas_esperando_max,
             "supero_umbral_x": supera_x

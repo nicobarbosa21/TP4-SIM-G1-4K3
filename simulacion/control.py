@@ -8,7 +8,7 @@ def simular_n_dias(n, i, j, x):
     vectores_por_dia = []
 
     for dia in range(1, n + 1):
-        vector, rec, gastos, supera = simular_dia(i, j, x)
+        vector, rec, gastos, supera = simular_dia(dia, i, j, x)
 
         vectores_por_dia.append(vector)
         total_recaudacion += rec
