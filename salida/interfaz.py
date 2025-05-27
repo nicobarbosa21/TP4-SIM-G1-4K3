@@ -66,8 +66,17 @@ resumen_var = tk.StringVar()
 tk.Label(root, textvariable=resumen_var, font=("Arial", 13, "bold"), bg="#1e1e2f", fg="#00FFAA").pack(pady=10)
 
 def mostrar_dia(indice):
-    for i in tree.get_children():
-        tree.delete(i)
+    global tree
+
+    # Elimina el Treeview anterior
+    tree.destroy()
+
+    # Crea uno nuevo
+    tree_new = ttk.Treeview(frame_tabla, show="headings", xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
+    tree_new.pack(side="left", expand=True, fill="both")
+    scroll_x.config(command=tree_new.xview)
+    scroll_y.config(command=tree_new.yview)
+    tree = tree_new
 
     vector = vectores_por_dia[indice]
     max_id = max((c["id"] for fila in vector for c in fila.get("clientes_activos", [])), default=0)
