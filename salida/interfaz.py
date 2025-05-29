@@ -124,7 +124,7 @@ def simular():
 
         probabilidad = dias_que_superan_x / dias
         resumen_var.set(
-            f"Recaudación total: ${total_recaudacion} | Gastos: ${total_gastos} | Ganancia: ${total_ganancia} | Prob. superar {umbral}: {probabilidad:.2%}"
+            f"Recaudación total: ${total_recaudacion} (${round(total_recaudacion/dias,2)}) | Gastos: ${total_gastos} (${round(total_gastos/dias,2)}) | Ganancia: ${total_ganancia} (${round(total_ganancia/dias,2)}) | Prob. superar {umbral}: {probabilidad:.2%}"
         )
 
         dia_combobox['values'] = [f"Día {i+1}" for i in range(len(vectores_por_dia))]

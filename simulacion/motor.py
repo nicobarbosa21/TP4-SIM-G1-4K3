@@ -163,6 +163,19 @@ def simular_dia(numero_dia, i, j, x):
 
         if personas_esperando > x:
             supera_x = 1
+        
+        #Serie de ifs para setear dinámicamente en None si fue la última ejecución de ese evento
+        if reloj > cfg.TIEMPO_RECEPCION_CLIENTES:
+            proxima_llegada_actual = None
+
+        if fin_a_actual is not None and reloj > fin_a_actual:
+            fin_a_actual = None
+
+        if fin_b_actual is not None and reloj > fin_b_actual:
+            fin_b_actual = None
+
+        if fin_c_actual is not None and reloj > fin_c_actual:
+            fin_c_actual = None
 
         datos_evento = {
             "rnd_llegada": rnd_llegada if tipo_evento == "llegada" else None,
@@ -194,6 +207,12 @@ def simular_dia(numero_dia, i, j, x):
             nro_fila += 1
 
         servidor_final = servidor if evento.tipo == "fin_servicio" else None
+
+        datos_evento["proxima_llegada"] = proxima_llegada_actual
+        datos_evento["fin_atencion_a"] = fin_a_actual
+        datos_evento["fin_atencion_b"] = fin_b_actual
+        datos_evento["fin_atencion_c"] = fin_c_actual
+
         ultima_fila = construir_ultima_fila(reloj, evento, servidor_final, colorista, peluquero_a, peluquero_b, recaudacion_total, gastos_refrigerios, datos_evento)
 
     if not vector_estado or vector_estado[-1]["reloj"] != ultima_fila["reloj"]:
