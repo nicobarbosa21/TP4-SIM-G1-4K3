@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tkinter as tk
 from tkinter import ttk, messagebox
 from simulacion.motor import simular_dia
+from simulacion.exportar import exportar_simulacion_a_excel
 
 vectores_por_dia = []
 
@@ -134,6 +135,15 @@ def simular():
     except ValueError:
         messagebox.showerror("Error", "Por favor ingrese números válidos.")
 
+def exportar_excel():
+    if not vectores_por_dia:
+        messagebox.showwarning("Advertencia", "Primero debes ejecutar una simulación.")
+        return
+    ruta = exportar_simulacion_a_excel(vectores_por_dia)
+    messagebox.showinfo("Exportación Exitosa", f"Simulación exportada a:\n{ruta}")
+
 btn.config(command=simular)
 dia_combobox.bind("<<ComboboxSelected>>", lambda e: mostrar_dia(dia_combobox.current()))
+btn_exportar = tk.Button(root, text="Exportar a Excel", bg="#00aa00", fg="white", font=("Arial", 11, "bold"), command=lambda: exportar_excel())
+btn_exportar.pack(pady=5)
 root.mainloop()
