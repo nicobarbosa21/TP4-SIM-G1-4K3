@@ -1,149 +1,132 @@
+import streamlit as st
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import tkinter as tk
-from tkinter import ttk, messagebox
+import pandas as pd
 from simulacion.motor import simular_dia
-from simulacion.exportar import exportar_simulacion_a_excel
 
-vectores_por_dia = []
+st.set_page_config(layout="wide")
+st.title("💈 Simulador de Peluquería Look")
 
-columns = [
-    "nro_fila", "reloj", "evento", "cliente_id", "rnd_cliente", "tiempo_entre_llegadas", "proxima_llegada",
-    "rnd_atencion", "servidor_a_atender", "se_puede_recibir_clientes", "termino_dia",
-    "rnd_peluquero_a", "tiempo_atencion_a", "fin_atencion_a", "peluquero_a_estado", "cola_a",
-    "rnd_peluquero_b", "tiempo_atencion_b", "fin_atencion_b", "peluquero_b_estado", "cola_b",
-    "rnd_colorista", "tiempo_atencion_c", "fin_atencion_c", "colorista_estado", "cola_colorista",
-    "recaudacion", "costos", "ganancia", "numero_dia", "personas_esperando", "maximo_cola", "supero_umbral_x"
-]
+# --- Función para expandir clientes activos como columnas ---
+def expandir_clientes(filas):
+    nuevas_filas = []
+    max_id = 0
+    for fila in filas:
+        ids = [c["id"] for c in fila.get("clientes_activos", [])]
+        if ids:
+            max_id = max(max_id, max(ids))
 
-root = tk.Tk()
-root.title("Simulador Peluquería Look")
-root.geometry("1600x850")
-root.configure(bg="#1e1e2f")
-
-frame_titulo = tk.Frame(root, bg="#961515", padx=4, pady=4)
-frame_titulo.pack(pady=10)
-tk.Label(frame_titulo, text="💈 Peluquería Look - Vector de Estado 💈", bg="#1e1e2f", fg="#FFFFFF", font=("Arial", 20, "bold")).pack()
-
-frame_entradas = tk.Frame(root, bg="#1e1e2f")
-frame_entradas.pack()
-
-etiquetas = ["Días:", "Filas a mostrar (i):", "Desde minuto (j):", "Umbral máximo (x):"]
-entries = []
-
-for i, texto in enumerate(etiquetas):
-    tk.Label(frame_entradas, text=texto, bg="#1e1e2f", fg="white", font=("Arial", 11)).grid(row=i, column=0, sticky="e", padx=5, pady=5)
-    entry = tk.Entry(frame_entradas, font=("Arial", 11))
-    entry.grid(row=i, column=1, pady=5)
-    entries.append(entry)
-
-entry_dias, entry_filas, entry_desde, entry_umbral = entries
-
-btn = tk.Button(root, text="Simular", bg="#ffffff", fg="black", font=("Arial", 11, "bold"))
-btn.pack(pady=10)
-
-frame_combo = tk.Frame(root, bg="#1e1e2f")
-frame_combo.pack(pady=5)
-tk.Label(frame_combo, text="Seleccionar Día:", bg="#1e1e2f", fg="white", font=("Arial", 11)).pack(side="left")
-dia_var = tk.StringVar()
-dia_combobox = ttk.Combobox(frame_combo, textvariable=dia_var, state="readonly")
-dia_combobox.pack(side="left", padx=10)
-
-frame_tabla = tk.Frame(root)
-frame_tabla.pack(expand=True, fill="both", padx=10, pady=10)
-
-scroll_x = tk.Scrollbar(frame_tabla, orient="horizontal")
-scroll_y = tk.Scrollbar(frame_tabla, orient="vertical")
-scroll_x.pack(side="bottom", fill="x")
-scroll_y.pack(side="right", fill="y")
-
-tree = ttk.Treeview(frame_tabla, show="headings", xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
-tree.pack(side="left", expand=True, fill="both")
-scroll_x.config(command=tree.xview)
-scroll_y.config(command=tree.yview)
-
-resumen_var = tk.StringVar()
-tk.Label(root, textvariable=resumen_var, font=("Arial", 13, "bold"), bg="#1e1e2f", fg="#00FFAA").pack(pady=10)
-
-def mostrar_dia(indice):
-    global tree
-
-    # Elimina el Treeview anterior
-    tree.destroy()
-
-    # Crea uno nuevo
-    tree_new = ttk.Treeview(frame_tabla, show="headings", xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
-    tree_new.pack(side="left", expand=True, fill="both")
-    scroll_x.config(command=tree_new.xview)
-    scroll_y.config(command=tree_new.yview)
-    tree = tree_new
-
-    vector = vectores_por_dia[indice]
-    max_id = max((c["id"] for fila in vector for c in fila.get("clientes_activos", [])), default=0)
-    cliente_columns = [f"cliente_{i}" for i in range(1, max_id + 1)]
-    all_columns = columns + cliente_columns
-
-    tree["columns"] = all_columns
-    tree["displaycolumns"] = all_columns
-    for col in all_columns:
-        ancho = 180 if col == "evento" else 120
-        tree.heading(col, text=col.replace("_", " ").title())
-        tree.column(col, width=ancho, anchor='center', stretch=False)
-    for fila in vector:
-        base = [fila.get(col, '') for col in columns]
+    for fila in filas:
+        base = {k: v for k, v in fila.items() if k != "clientes_activos"}
         estado_por_id = {
-            c['id']: f"{c['estado']} ({c['hora_refrigerio']})" if c['hora_refrigerio'] else c['estado']
+            c["id"]: f'{c["estado"]} ({c["hora_refrigerio"]})' if c["hora_refrigerio"] else c["estado"]
             for c in fila.get("clientes_activos", [])
         }
-        cliente_info = [estado_por_id.get(i, '') for i in range(1, max_id + 1)]
-        tree.insert("", "end", values=base + cliente_info)
+        for i in range(1, max_id + 1):
+            base[f"cliente_{i}"] = estado_por_id.get(i, "")
+        nuevas_filas.append(base)
 
-def simular():
-    try:
-        dias = int(entry_dias.get())
-        filas = int(entry_filas.get())
-        desde_minuto = float(entry_desde.get())
-        umbral = int(entry_umbral.get())
+    return nuevas_filas
 
-        vectores_por_dia.clear()
-        for i in tree.get_children():
-            tree.delete(i)
+# --- PARÁMETROS DE ENTRADA ---
+st.header("Parámetros de Simulación")
 
-        total_recaudacion = 0
-        total_gastos = 0
-        total_ganancia = 0
-        dias_que_superan_x = 0
+col1, col2 = st.columns(2)
+with col1:
+    dias = st.number_input("Cantidad de días a simular", min_value=1, value=1)
+    filas = st.number_input("Filas a mostrar (i)", min_value=1, value=10)
+    desde_minuto = st.number_input("Desde qué minuto mostrar (j)", min_value=0.0, value=0.0, step=1.0)
+    umbral = st.number_input("Umbral máximo de personas esperando (x)", min_value=0, value=10)
+
+with col2:
+    prob_colorista = st.number_input("Probabilidad de Colorista (0-1)", min_value=0.0, max_value=1.0, value=0.15)
+    prob_a = st.number_input("Probabilidad de Peluquero A (0-1)", min_value=0.0, max_value=1.0, value=0.45)
+    if prob_colorista + prob_a > 1:
+        st.error("La suma de probabilidades de Colorista y A debe ser menor o igual a 1")
+
+# --- DISTRIBUCIONES ---
+st.subheader("Distribuciones de Tiempo")
+
+col_l1, col_l2 = st.columns(2)
+with col_l1:
+    llegada_min = st.number_input("Llegada - Mínimo", min_value=0.0, value=2.0)
+    llegada_max = st.number_input("Llegada - Máximo", min_value=llegada_min, value=12.0)
+
+with col_l2:
+    colorista_min = st.number_input("Colorista - Mínimo", min_value=0.0, value=30.0)
+    colorista_max = st.number_input("Colorista - Máximo", min_value=colorista_min, value=50.0)
+
+    a_min = st.number_input("Peluquero A - Mínimo", min_value=0.0, value=21.0)
+    a_max = st.number_input("Peluquero A - Máximo", min_value=a_min, value=25.0)
+
+    b_min = st.number_input("Peluquero B - Mínimo", min_value=0.0, value=22.0)
+    b_max = st.number_input("Peluquero B - Máximo", min_value=b_min, value=38.0)
+
+# Inicializar vectores en session_state
+if "vectores_por_dia" not in st.session_state:
+    st.session_state.vectores_por_dia = []
+    st.session_state.total_rec = 0
+    st.session_state.total_gastos = 0
+    st.session_state.dias_superan_x = 0
+
+# --- SIMULACIÓN ---
+if st.button("Simular"):
+    if prob_colorista + prob_a <= 1:
+        st.session_state.vectores_por_dia = []
+        st.session_state.total_rec = 0
+        st.session_state.total_gastos = 0
+        st.session_state.dias_superan_x = 0
 
         for dia in range(1, dias + 1):
-            vector, rec, gastos, supera = simular_dia(dia, filas, desde_minuto, umbral)
-            vectores_por_dia.append(vector)
-            total_recaudacion += rec
-            total_gastos += gastos
-            total_ganancia += (rec - gastos)
-            dias_que_superan_x += supera
+            vec, rec, gastos, supera = simular_dia(
+                numero_dia=dia,
+                i=filas,
+                j=desde_minuto,
+                x=umbral,
+                llegada=(llegada_min, llegada_max),
+                colorista_tiempo=(colorista_min, colorista_max),
+                peluquero_a_tiempo=(a_min, a_max),
+                peluquero_b_tiempo=(b_min, b_max),
+                prob_colorista=prob_colorista,
+                prob_a=prob_a
+            )
+            for fila in vec:
+                fila["nro_fila"] = str(fila["nro_fila"])  # evitar error de conversión a int
+            st.session_state.vectores_por_dia.append(vec)
+            st.session_state.total_rec += rec
+            st.session_state.total_gastos += gastos
+            st.session_state.dias_superan_x += supera
 
-        probabilidad = dias_que_superan_x / dias
-        resumen_var.set(
-            f"Recaudación total: ${total_recaudacion} (${round(total_recaudacion/dias,2)}) | Gastos: ${total_gastos} (${round(total_gastos/dias,2)}) | Ganancia: ${total_ganancia} (${round(total_ganancia/dias,2)}) | Prob. superar {umbral}: {probabilidad:.2%}"
-        )
+        st.success("Simulación completada.")
 
-        dia_combobox['values'] = [f"Día {i+1}" for i in range(len(vectores_por_dia))]
-        dia_combobox.current(0)
-        mostrar_dia(0)
+# --- MOSTRAR RESULTADOS SI EXISTEN ---
+if st.session_state.vectores_por_dia:
+    st.subheader("Resumen Global")
+    total_rec = st.session_state.total_rec
+    total_gastos = st.session_state.total_gastos
+    st.markdown(f"- Recaudación total: ${total_rec}")
+    st.markdown(f"- Gastos totales: ${total_gastos}")
+    st.markdown(f"- Ganancia: ${total_rec - total_gastos}")
+    st.markdown(f"- Probabilidad de superar {umbral}: {st.session_state.dias_superan_x / len(st.session_state.vectores_por_dia):.2%}")
 
-    except ValueError:
-        messagebox.showerror("Error", "Por favor ingrese números válidos.")
+    st.subheader("Vector de Estado por Día")
+    dia_sel = st.selectbox("Seleccionar Día", range(1, len(st.session_state.vectores_por_dia) + 1))
+    vec_dia = st.session_state.vectores_por_dia[dia_sel - 1]
 
-def exportar_excel():
-    if not vectores_por_dia:
-        messagebox.showwarning("Advertencia", "Primero debes ejecutar una simulación.")
-        return
-    ruta = exportar_simulacion_a_excel(vectores_por_dia)
-    messagebox.showinfo("Exportación Exitosa", f"Simulación exportada a:\n{ruta}")
+    data_expandida = expandir_clientes(vec_dia)
+    df_dia = pd.DataFrame(data_expandida)
 
-btn.config(command=simular)
-dia_combobox.bind("<<ComboboxSelected>>", lambda e: mostrar_dia(dia_combobox.current()))
-btn_exportar = tk.Button(root, text="Exportar a Excel", bg="#00aa00", fg="white", font=("Arial", 11, "bold"), command=lambda: exportar_excel())
-btn_exportar.pack(pady=5)
-root.mainloop()
+    # Configuración para columnas de clientes (ancho personalizado)
+    columnas_clientes = [col for col in df_dia.columns if col.startswith("cliente_")]
+    configs = {col: st.column_config.Column(width="medium") for col in columnas_clientes}
+
+    st.dataframe(df_dia, use_container_width=True, column_config=configs, hide_index=True)
+
+    # Exportar
+    if st.button("Exportar a Excel"):
+        with pd.ExcelWriter("simulacion_peluqueria.xlsx") as writer:
+            for i, vec in enumerate(st.session_state.vectores_por_dia, start=1):
+                expandido = expandir_clientes(vec)
+                pd.DataFrame(expandido).to_excel(writer, sheet_name=f"Día {i}", index=False)
+        st.success("Simulación exportada a 'simulacion_peluqueria.xlsx'.")

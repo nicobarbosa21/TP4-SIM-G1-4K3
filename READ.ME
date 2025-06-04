@@ -1,0 +1,71 @@
+# Simulador de Peluquería Look
+
+Este proyecto simula la atención de clientes en una peluquería, permitiendo analizar el funcionamiento de los servidores (colorista y peluqueros), la llegada de clientes, la gestión de colas y la recaudación. Incluye una interfaz de consola y una interfaz web interactiva con Streamlit.
+
+## Requisitos
+
+- Python 3.10 o superior recomendado
+- pip (gestor de paquetes de Python)
+
+## Instalación de dependencias
+
+Desde la raíz del proyecto, ejecuta:
+
+```sh
+pip install -r requirements.txt
+```
+
+Si tienes varias versiones de Python, asegúrate de usar el pip correspondiente a la versión que usarás para ejecutar el programa. Por ejemplo:
+
+```sh
+C:/Users/Usuario/AppData/Local/Programs/Python/Python310/python.exe -m pip install -r requirements.txt
+```
+
+## Ejecución por consola
+
+Desde la raíz del proyecto:
+
+```sh
+python main.py
+```
+
+Sigue las instrucciones en pantalla para configurar la simulación.
+
+## Ejecución de la interfaz web (Streamlit)
+
+Desde la raíz del proyecto, ejecuta:
+
+```sh
+streamlit run salida/interfaz.py
+```
+
+Si el comando `streamlit` no funciona, prueba:
+
+```sh
+python -m streamlit run salida/interfaz.py
+```
+
+Esto abrirá la interfaz web en tu navegador, donde podrás configurar y visualizar la simulación de manera interactiva.
+
+## Exportar resultados
+
+La aplicación permite exportar los resultados de la simulación a un archivo Excel (`simulacion_peluqueria.xlsx`).  
+Asegúrate de cerrar el archivo Excel antes de exportar para evitar errores de permisos.
+
+## Estructura del proyecto
+
+- `main.py`: Ejecución por consola.
+- `salida/interfaz.py`: Interfaz web con Streamlit.
+- `simulacion/`: Lógica principal de la simulación.
+- `entidades/`: Definición de clases como Cliente, Servidor, etc.
+- `config.py`: Configuración y parámetros globales.
+- `requirements.txt`: Lista de dependencias necesarias.
+
+## Notas
+
+- Si agregas nuevas dependencias, recuerda actualizar el archivo `requirements.txt` con `pip freeze > requirements.txt`.
+- Si tienes problemas con permisos o módulos no encontrados, revisa que estés usando la versión de Python y pip correctas.
+
+---
+
+¡Listo! Ahora puedes simular y analizar el funcionamiento de la peluquería tanto por consola como desde la web.

@@ -6,7 +6,7 @@ import config as cfg
 from . import aleatorios as ale
 from simulacion.vector_estado import construir_fila, construir_ultima_fila
 
-def simular_dia(numero_dia, i, j, x):
+def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiempo, peluquero_b_tiempo, prob_colorista, prob_a):
     reloj = 0.0
     eventos = []
     iteraciones = 0
@@ -23,18 +23,20 @@ def simular_dia(numero_dia, i, j, x):
     id_cliente = 1
     clientes = []
 
-    colorista = Servidor("Colorista", "colorista", *cfg.TIEMPOS_COLORISTA, cfg.PRECIO_COLORISTA)
-    peluquero_a = Servidor("Peluquero A", "peluquero", *cfg.TIEMPOS_PELUQUERO_A, cfg.PRECIO_PELUQUERO)
-    peluquero_b = Servidor("Peluquero B", "peluquero", *cfg.TIEMPOS_PELUQUERO_B, cfg.PRECIO_PELUQUERO)
+    colorista = Servidor("Colorista", "colorista", *colorista_tiempo, cfg.PRECIO_COLORISTA)
+    peluquero_a = Servidor("Peluquero A", "peluquero", *peluquero_a_tiempo, cfg.PRECIO_PELUQUERO)
+    peluquero_b = Servidor("Peluquero B", "peluquero", *peluquero_b_tiempo, cfg.PRECIO_PELUQUERO)
 
-    tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*cfg.TIEMPOS_LLEGADA)
+    tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*llegada)
     proxima_llegada = tiempo_entre_llegadas
     proxima_llegada_actual = proxima_llegada
     fin_a_actual = None
     fin_b_actual = None
     fin_c_actual = None
 
-    servidor_asignado, rnd_asignacion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+    servidor_asignado, rnd_asignacion = ale.elegir_servidor(
+    colorista, peluquero_a, peluquero_b, prob_colorista, prob_a
+    )
 
     datos_evento_inicial = {
         "rnd_llegada": rnd_llegada,
@@ -94,7 +96,7 @@ def simular_dia(numero_dia, i, j, x):
                 servidor_asignado = evento.servidor_asignado
                 rnd_atencion = evento.rnd_asignacion
             else:
-                servidor_asignado, rnd_atencion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b)
+                servidor_asignado, rnd_asignacion = ale.elegir_servidor(colorista, peluquero_a, peluquero_b, prob_colorista, prob_a)
             servidor = servidor_asignado
 
             if servidor.esta_libre():
