@@ -14,7 +14,7 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
     recaudacion_total = 0
 
     personas_esperando_max = 0
-    supera_x = 0
+    supera_x = False
 
     vector_estado = []
     nro_fila = 1
@@ -58,7 +58,7 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
         "numero_dia": numero_dia,
         "personas_esperando": 0,
         "maximo_cola": 0,
-        "supero_umbral_x": 0
+        "supero_umbral_x": False
     }
 
     fila_inicial = construir_fila(nro_fila, 0.0, Evento(tiempo=0.0, tipo="Inicialización"), None, datos_evento_inicial, colorista, peluquero_a, peluquero_b, 0, 0, clientes)
@@ -164,7 +164,7 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
             personas_esperando_max = personas_esperando
 
         if personas_esperando > x:
-            supera_x = 1
+            supera_x = True
         
         #Serie de ifs para setear dinámicamente en None si fue la última ejecución de ese evento
         if reloj > cfg.TIEMPO_RECEPCION_CLIENTES:
