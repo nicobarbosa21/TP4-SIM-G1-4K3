@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from simulacion.motor import simular_dia
 
+
 st.set_page_config(layout="wide")
 st.title("Simulador de Peluquería Look")
 
@@ -134,7 +135,7 @@ if st.session_state.vectores_por_dia:
     st.dataframe(
         df_dia,
         use_container_width=True,
-        height=min(20, len(df_dia)) * 35 + 40,
+        height=min(10, len(df_dia)) * 35 + 40,
         column_config=column_config
     )
 
