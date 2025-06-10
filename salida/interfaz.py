@@ -119,13 +119,14 @@ if st.session_state.vectores_por_dia:
     st.subheader("Resumen Global")
     total_rec = st.session_state.total_rec
     total_gastos = st.session_state.total_gastos
-    st.markdown(f"- Recaudación total: ${total_rec:,.2f}")
-    st.markdown(f"- Promedio diario de recaudación: ${total_rec/dias:,.2f}")
-    st.markdown(f"- Gastos totales: ${total_gastos:,.2f}")
-    st.markdown(f"- Promedio diario de gastos: ${total_gastos/dias:,.2f}")
-    st.markdown(f"- Ganancia: ${(total_rec - total_gastos):,.2f}")
-    st.markdown(f"- Promedio diario de ganancia: ${(total_rec - total_gastos)/dias:,.2f}")
-    st.markdown(f"- Probabilidad de superar {umbral}: {st.session_state.dias_superan_x / len(st.session_state.vectores_por_dia):.2%}")
+    ganancia = total_rec - total_gastos
+    prob = st.session_state.dias_superan_x / len(st.session_state.vectores_por_dia)
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Recaudación", f"${total_rec:,.2f}", f"Prom: ${total_rec/dias:,.2f}")
+    col2.metric("Gastos", f"${total_gastos:,.2f}", f"Prom: ${total_gastos/dias:,.2f}")
+    col3.metric("Ganancia", f"${ganancia:,.2f}", f"Prom: ${ganancia/dias:,.2f}")
+    col4.metric(f"Prob. > {umbral}", f"{prob:.2%}")
 
     st.subheader("Vector de Estado por Día")
     dia_sel = st.selectbox("Seleccionar Día", range(1, len(st.session_state.vectores_por_dia) + 1))
