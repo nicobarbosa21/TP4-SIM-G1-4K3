@@ -135,7 +135,7 @@ if st.session_state.vectores_por_dia:
     st.dataframe(
         df_dia,
         use_container_width=True,
-        height=min(10, len(df_dia)) * 35 + 40,
+        height=min(15, len(df_dia)) * 35 + 40,
         column_config=column_config
     )
 

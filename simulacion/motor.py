@@ -25,22 +25,17 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
     peluquero_b = Servidor("Peluquero B", "peluquero", *peluquero_b_tiempo, cfg.PRECIO_PELUQUERO)
 
     # --- INICIALIZACIÓN ---
-    # Generar TODO lo que usará la llegada del primer cliente
     tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*llegada)
     proxima_llegada = tiempo_entre_llegadas
     proxima_llegada_actual = proxima_llegada
     fin_a_actual = fin_b_actual = fin_c_actual = None
 
-    servidor_asignado, rnd_asignacion = ale.elegir_servidor(
-        colorista, peluquero_a, peluquero_b, prob_colorista, prob_a
-    )
-
     datos_evento_inicial = {
         "rnd_llegada": rnd_llegada,
         "tiempo_entre_llegadas": tiempo_entre_llegadas,
         "proxima_llegada": proxima_llegada,
-        "rnd_atencion": rnd_asignacion,
-        "servidor_a_atender": servidor_asignado.nombre,
+        "rnd_atencion": None,
+        "servidor_a_atender": None,
         "se_puede_recibir_clientes": True,
         "termino_dia": False,
         "rnd_peluquero_a": None,
@@ -58,21 +53,19 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
         "supero_umbral_x": False
     }
 
-    fila_inicial = construir_fila(
-        nro_fila, 0.0, Evento(tiempo=0.0, tipo="Inicialización"), None,
-        datos_evento_inicial, colorista, peluquero_a, peluquero_b, 0, 0, clientes
-    )
-    vector_estado.append(fila_inicial)
-    nro_fila += 1
+    if j <= 0 and i > 0:
+        fila_inicial = construir_fila(
+            nro_fila, 0.0, Evento(tiempo=0.0, tipo="Inicialización"), None,
+            datos_evento_inicial, colorista, peluquero_a, peluquero_b, 0, 0, clientes
+        )
+        vector_estado.append(fila_inicial)
+        nro_fila += 1
 
-    # Crear primer cliente y evento llegada con todos los datos generados
     cliente = Cliente(id_cliente, proxima_llegada)
     clientes.append(cliente)
     evento_llegada = Evento(tiempo=proxima_llegada, tipo="llegada", cliente=cliente)
     evento_llegada.rnd_llegada = rnd_llegada
     evento_llegada.tiempo_entre_llegadas = tiempo_entre_llegadas
-    evento_llegada.servidor_asignado = servidor_asignado
-    evento_llegada.rnd_asignacion = rnd_asignacion
     heapq.heappush(eventos, evento_llegada)
 
     while eventos and iteraciones < cfg.MAX_ITERACIONES:
@@ -90,14 +83,13 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
         if tipo_evento == "llegada":
             evento_relevante = True
             cliente = evento.cliente
-            # USAR SOLO LOS DATOS YA GENERADOS Y GUARDADOS EN EL EVENTO
             rnd_llegada = getattr(evento, "rnd_llegada", None)
             tiempo_entre_llegadas = getattr(evento, "tiempo_entre_llegadas", None)
-            rnd_atencion = getattr(evento, "rnd_asignacion", None)
-            servidor_asignado = getattr(evento, "servidor_asignado", None)
-            servidor = servidor_asignado
 
-            # NO GENERAR NADA NUEVO PARA EL CLIENTE ACTUAL
+            servidor_asignado, rnd_atencion = ale.elegir_servidor(
+                colorista, peluquero_a, peluquero_b, prob_colorista, prob_a
+            )
+            servidor = servidor_asignado
 
             if servidor.esta_libre():
                 servidor.asignar_cliente(cliente)
@@ -113,7 +105,6 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
                 servidor.cola.append(cliente)
                 heapq.heappush(eventos, Evento(tiempo=cliente.hora_refrigerio, tipo="paga_refrigerio", cliente=cliente))
 
-            # GENERAR TODO PARA EL PRÓXIMO CLIENTE (que se usará en la próxima llegada)
             if reloj <= cfg.TIEMPO_RECEPCION_CLIENTES:
                 tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*llegada)
                 nueva_llegada = reloj + tiempo_entre_llegadas
@@ -122,14 +113,9 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
                     id_cliente += 1
                     nuevo_cliente = Cliente(id_cliente, nueva_llegada)
                     clientes.append(nuevo_cliente)
-                    nuevo_servidor, nuevo_rnd = ale.elegir_servidor(
-                        colorista, peluquero_a, peluquero_b, prob_colorista, prob_a
-                    )
                     nuevo_evento = Evento(tiempo=nueva_llegada, tipo="llegada", cliente=nuevo_cliente)
                     nuevo_evento.rnd_llegada = rnd_llegada
                     nuevo_evento.tiempo_entre_llegadas = tiempo_entre_llegadas
-                    nuevo_evento.servidor_asignado = nuevo_servidor
-                    nuevo_evento.rnd_asignacion = nuevo_rnd
                     heapq.heappush(eventos, nuevo_evento)
 
         elif tipo_evento == "paga_refrigerio":
