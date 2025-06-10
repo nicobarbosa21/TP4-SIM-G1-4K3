@@ -24,7 +24,6 @@ def simular_dia(numero_dia, i, j, x, llegada, colorista_tiempo, peluquero_a_tiem
     peluquero_a = Servidor("Peluquero A", "peluquero", *peluquero_a_tiempo, cfg.PRECIO_PELUQUERO)
     peluquero_b = Servidor("Peluquero B", "peluquero", *peluquero_b_tiempo, cfg.PRECIO_PELUQUERO)
 
-    # --- INICIALIZACIÓN ---
     tiempo_entre_llegadas, rnd_llegada = ale.generar_uniforme(*llegada)
     proxima_llegada = tiempo_entre_llegadas
     proxima_llegada_actual = proxima_llegada

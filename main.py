@@ -1,3 +1,5 @@
+# Prueba de terminal
+
 from simulacion.control import simular_n_dias
 
 def pedir_intervalo(nombre):

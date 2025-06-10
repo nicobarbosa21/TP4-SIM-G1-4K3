@@ -8,7 +8,6 @@ from simulacion.motor import simular_dia
 st.set_page_config(layout="wide")
 st.title("Simulador de Peluquería Look")
 
-# --- Función para expandir clientes activos como columnas ---
 def expandir_clientes(filas):
     nuevas_filas = []
     max_id = 0
@@ -27,7 +26,6 @@ def expandir_clientes(filas):
         nuevas_filas.append(base)
     return nuevas_filas
 
-# --- SIDEBAR: PARÁMETROS DE ENTRADA ---
 with st.sidebar:
     st.header("Parámetros de Simulación")
     dias = st.number_input("Cantidad de días a simular", min_value=1, value=1)
@@ -77,7 +75,6 @@ with st.sidebar:
 
     simular_btn = st.button("Simular")
 
-# Inicializar vectores en session_state
 if "vectores_por_dia" not in st.session_state:
     st.session_state.vectores_por_dia = []
     st.session_state.total_rec = 0
@@ -106,7 +103,7 @@ if simular_btn:
                 prob_a=prob_a
             )
             for fila in vec:
-                fila["nro_fila"] = str(fila["nro_fila"])  # evitar error de conversión a int
+                fila["nro_fila"] = str(fila["nro_fila"])
             st.session_state.vectores_por_dia.append(vec)
             st.session_state.total_rec += rec
             st.session_state.total_gastos += gastos

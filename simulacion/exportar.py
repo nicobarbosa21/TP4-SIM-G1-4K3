@@ -1,5 +1,6 @@
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 def exportar_simulacion_a_excel(vectores_por_dia, ruta="simulacion_peluqueria.xlsx"):
     escritor = pd.ExcelWriter(ruta, engine='xlsxwriter')
@@ -29,12 +30,11 @@ def exportar_simulacion_a_excel(vectores_por_dia, ruta="simulacion_peluqueria.xl
     # Ajuste de columnas usando openpyxl
     wb = load_workbook(ruta)
     for ws in wb.worksheets:
-        for col in ws.columns:
+        for col_idx, col in enumerate(ws.iter_cols(1, ws.max_column), 1):
             max_len = 0
-            col_letter = col[0].column_letter
             for cell in col:
                 if cell.value:
                     max_len = max(max_len, len(str(cell.value)))
-            adjusted_width = max(12, min(max_len * 1.2, 80))  # límites razonables
-            ws.column_dimensions[col_letter].width = adjusted_width
+            adjusted_width = max(12, min(max_len * 1.4, 80))  # puedes ajustar el 1.4 si quieres más espacio
+            ws.column_dimensions[get_column_letter(col_idx)].width = adjusted_width
     wb.save(ruta)
